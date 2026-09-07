@@ -181,7 +181,20 @@ def executar_opcao(opcao, service):
         print(f"Valor total das vendas: R$ {valor_total_vendas:.2f}")
 
     elif opcao == 18:
-        pass
+        clientes = service.clientes_e_valores_totais_gastos()
+
+        if not clientes:
+            print("Nenhum cliente encontrado.")
+        else:
+            for cliente in clientes:
+                print(
+                f"Cliente: {cliente['nome']} "
+                f"(Código {cliente['codigo_cliente']}) - "
+                f"Total gasto: R$ {cliente['total_gasto']:.2f}"
+            )
+
+                pausar()
+        
 
     elif opcao == 19:
         pass
