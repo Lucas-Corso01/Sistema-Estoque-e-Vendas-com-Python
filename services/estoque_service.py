@@ -203,7 +203,18 @@ class EstoqueService:
         return resultado
 
     def cliente_que_mais_gastou(self):
-        pass
+        clientes = self.clientes_e_valores_totais_gastos()
+
+        if not clientes:
+            return None
+
+        maior = clientes[0]
+
+        for cliente in clientes:
+            if cliente["total_gasto"] > maior["total_gasto"]:
+                maior = cliente
+
+        return maior
 
     def produto_mais_vendido(self):
         pass

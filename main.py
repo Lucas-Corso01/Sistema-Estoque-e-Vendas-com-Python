@@ -197,7 +197,18 @@ def executar_opcao(opcao, service):
         
 
     elif opcao == 19:
-        pass
+        cliente = service.cliente_que_mais_gastou()
+
+        if cliente is None:
+            print("Nenhum cliente encontrado.")
+        else:
+            print(
+                f"Cliente que mais gastou: {cliente['nome']} "
+                f"(Código {cliente['codigo_cliente']}) - "
+                f"Total gasto: R$ {cliente['total_gasto']:.2f}"
+            )
+
+        pausar()
 
     elif opcao == 20:
         pass
