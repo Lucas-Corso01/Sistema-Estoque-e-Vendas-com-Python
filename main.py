@@ -193,7 +193,7 @@ def executar_opcao(opcao, service):
                 f"Total gasto: R$ {cliente['total_gasto']:.2f}"
             )
 
-                pausar()
+        pausar()
         
 
     elif opcao == 19:
