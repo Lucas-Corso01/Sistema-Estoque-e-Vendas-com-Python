@@ -6,6 +6,7 @@ from models.cliente import Cliente
 from models.produto import Produto
 from models.venda import Venda
 from estruturas.fila import Fila
+from estruturas.pilha import Pilha
 from estruturas.lde import LDE
 from estruturas.lse import LSE
 from services.persistencia_service import PersistenciaService
@@ -18,6 +19,7 @@ class EstoqueService:
         self.clientes = LSE()
         self.produtos = LDE()
         self.vendas = Fila()
+        self.historico = Pilha()
         self.persistencia = PersistenciaService(pasta_data)
 
         self.carregar_dados()
@@ -57,6 +59,10 @@ class EstoqueService:
         cliente = Cliente(codigo, nome)
         self.clientes.inserir_fim(cliente)
         self.salvar_clientes()
+        self.historico.push({
+                "tipo": "cadastrar_cliente",
+                "cliente": cliente
+                })
         return cliente
 
     def listar_clientes(self):
@@ -74,6 +80,10 @@ class EstoqueService:
             return None
         cliente_removido = self.clientes.remover(codigo)
         self.salvar_clientes()
+        self.historico.push({
+                "tipo": "remover_cliente",
+                "cliente": cliente_removido
+                })
         return cliente_removido
 
     def cadastrar_produto(self, nome, preco, quantidade):
@@ -81,6 +91,10 @@ class EstoqueService:
         produto = Produto(codigo, nome, preco, quantidade)
         self.produtos.inserir_fim(produto)
         self.salvar_produtos()
+        self.historico.push({
+        "tipo": "cadastrar_produto",
+        "produto": produto
+        })
         return produto
 
     def listar_produtos(self):
@@ -117,6 +131,10 @@ class EstoqueService:
         if produto:
             produto.atualizar_estoque(nova_quantidade)
             self.salvar_produtos()
+            self.historico.push({
+                    "tipo": "atualizar_estoque",
+                    "estoque": produto
+                    })
             return produto
         return None
 
@@ -125,6 +143,10 @@ class EstoqueService:
             return None
         produto_removido = self.produtos.remover(codigo)
         self.salvar_produtos()
+        self.historico.push({
+                "tipo": "remover_produto",
+                "produto": produto
+                })
         return produto_removido
 
     def realizar_venda_exemplo(self, codigo_cliente, codigo_produto, quantidade):
@@ -153,7 +175,10 @@ class EstoqueService:
         self.vendas.enqueue(venda)
         print("VENDAS NA FILA:", self.vendas.listar())
         self.salvar_vendas()
-
+        self.historico.push({
+                "tipo": "realizar_venda",
+                "venda": venda
+                })
 
         return venda
 
@@ -220,7 +245,10 @@ class EstoqueService:
         pass
 
     def desfazer_ultima_operacao(self):
-        pass
+        if self.historico.is_empty():
+            return None
+
+        operacao = self.historico.pop()
 
     def salvar_clientes(self):
         self.persistencia.salvar_clientes(self.clientes.listar())

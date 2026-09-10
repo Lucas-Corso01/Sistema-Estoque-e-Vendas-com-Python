@@ -214,7 +214,11 @@ def executar_opcao(opcao, service):
         pass
 
     elif opcao == 21:
-        pass
+        resultado = service.desfazer_ultima_operacao()
+        if resultado is None:
+            print("Nenhuma operação para desfazer.")
+        else:
+            print("Última operação desfeita com sucesso.")
 
     else:
         print("Opcao invalida. Tente novamente.")
