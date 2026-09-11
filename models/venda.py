@@ -12,11 +12,17 @@ class Venda:
 
         if len(self.itens) == 0:
             raise ValueError("A venda deve possuir pelo menos um item.")
+        
+        for item in self.itens:
+            quantidade = item.get("quantidade")
+            preco = item.get("preco_unitario")
 
-        if valor_total is None:
-            self.valor_total = self.calcular_total()
-        else:
-            self.valor_total = float(valor_total)
+            if quantidade is None or quantidade <= 0:
+                raise ValueError("A quantidade deve ser maior que zero.")
+
+            if preco is None or preco < 0:
+                raise ValueError("O preço unitário não pode ser negativo.")
+        self.valor_total = self.calcular_total()
 
     def calcular_total(self):
         total = 0.0

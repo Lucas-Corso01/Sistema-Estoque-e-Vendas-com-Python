@@ -104,9 +104,7 @@ class EstoqueService:
         return self.produtos.listar()
 
     def listar_produtos_inverso(self):
-        produtos =  ordenar_produtos_por_id(self.produtos.listar())
-        produtos_inverso = list(reversed(produtos))
-        return produtos_inverso
+        return self.produtos.listar_inverso()
 
     def listar_produtos_ordenados_por_id(self):
         if self.produtos.is_empty():
@@ -122,8 +120,8 @@ class EstoqueService:
     def buscar_produto_binario(self, codigo):
         if self.produtos.is_empty():
                     return None
-        produtos = buscar_produto_por_id (self.produtos.listar(), codigo)
-        return  produtos
+        produtos = ordenar_produtos_por_id(self.produtos.listar())
+        return buscar_produto_por_id(produtos, codigo)
 
     def atualizar_estoque(self, codigo, nova_quantidade):
         produto = self.produtos.buscar(codigo)
@@ -214,7 +212,8 @@ class EstoqueService:
 
     def primeira_venda(self):
         if self.vendas.is_empty():
-                    return []
+            return None
+
         return self.vendas.front()
 
     def valor_total_estoque(self):
