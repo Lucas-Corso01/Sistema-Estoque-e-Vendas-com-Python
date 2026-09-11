@@ -76,15 +76,16 @@ class EstoqueService:
         return self.clientes.buscar(codigo)
 
     def remover_cliente(self, codigo):
-        if self.clientes.is_empty():
-            return None
-        cliente_removido = self.clientes.remover(codigo)
-        self.salvar_clientes()
-        self.historico.push({
+        cliente = self.clientes.remover(codigo)
+
+        if cliente:
+            self.salvar_clientes()
+            self.historico.push({
                 "tipo": "remover_cliente",
-                "cliente": cliente_removido
-                })
-        return cliente_removido
+                "cliente": cliente
+            })
+
+        return cliente
 
     def cadastrar_produto(self, nome, preco, quantidade):
         codigo = self.gerar_proximo_codigo_produto()
@@ -125,60 +126,83 @@ class EstoqueService:
         return  produtos
 
     def atualizar_estoque(self, codigo, nova_quantidade):
-        if self.produtos.is_empty():
-            return None
         produto = self.produtos.buscar(codigo)
+
         if produto:
+            anterior = produto.quantidade
             produto.atualizar_estoque(nova_quantidade)
             self.salvar_produtos()
+
             self.historico.push({
-                    "tipo": "atualizar_estoque",
-                    "estoque": produto
-                    })
+                "tipo": "atualizar_estoque",
+                "codigo": codigo,
+                "anterior": anterior
+            })
+
             return produto
+
         return None
 
     def remover_produto(self, codigo):
-        if self.produtos.is_empty():
-            return None
-        produto_removido = self.produtos.remover(codigo)
-        self.salvar_produtos()
-        self.historico.push({
+        produto = self.produtos.remover(codigo)
+
+        if produto:
+            self.salvar_produtos()
+            self.historico.push({
                 "tipo": "remover_produto",
                 "produto": produto
-                })
-        return produto_removido
+            })
 
-    def realizar_venda_exemplo(self, codigo_cliente, codigo_produto, quantidade):
+        return produto
+
+    def realizar_venda_exemplo(self, codigo_cliente, itens_venda):
         if self.produtos.is_empty():
-                    return None
+            return None
+
         cliente = self.clientes.buscar(codigo_cliente)
-        produto = self.produtos.buscar(codigo_produto)
-        quantidade = int(quantidade)
-        if not cliente or not produto:
+
+        if not cliente:
             return None
-        if produto.quantidade < quantidade:
+
+        itens = []
+
+        for item in itens_venda:
+            produto = self.produtos.buscar(item["codigo_produto"])
+            quantidade = item["quantidade"]
+
+            if not produto or quantidade <= 0:
+                return None
+
+            if produto.quantidade < quantidade:
+                return None
+
+            itens.append({
+                "codigo_produto": produto.codigo,
+                "quantidade": quantidade,
+                "preco_unitario": produto.preco
+            })
+
+        if not itens:
             return None
-        item = {
-            "codigo_produto": produto.codigo,
-            "quantidade": quantidade,
-            "preco_unitario": produto.preco
-        }
-        produto.atualizar_estoque(
-             produto.quantidade - quantidade
-        )
+
+        for item in itens:
+            produto = self.produtos.buscar(item["codigo_produto"])
+            produto.atualizar_estoque(
+                produto.quantidade - item["quantidade"]
+            )
+
         self.salvar_produtos()
 
         codigo_venda = self.gerar_proximo_codigo_venda()
-        venda = Venda(codigo_venda, codigo_cliente, [item])
+        venda = Venda(codigo_venda, codigo_cliente, itens)
 
         self.vendas.enqueue(venda)
-        print("VENDAS NA FILA:", self.vendas.listar())
         self.salvar_vendas()
+
         self.historico.push({
-                "tipo": "realizar_venda",
-                "venda": venda
-                })
+            "tipo": "realizar_venda",
+            "venda": venda
+        })
 
         return venda
 
@@ -242,13 +266,74 @@ class EstoqueService:
         return maior
 
     def produto_mais_vendido(self):
-        pass
+        totais = {}
+
+        for venda in self.vendas.listar():
+            for item in venda.itens:
+                codigo = item["codigo_produto"]
+                totais[codigo] = totais.get(codigo, 0) + item["quantidade"]
+
+        if not totais:
+            return None
+
+        for codigo in sorted(totais, key=totais.get, reverse=True):
+            produto = self.produtos.buscar(codigo)
+            if produto:
+                return produto, totais[codigo]
+
+        return None
 
     def desfazer_ultima_operacao(self):
         if self.historico.is_empty():
             return None
 
         operacao = self.historico.pop()
+        tipo = operacao["tipo"]
+
+        if tipo == "cadastrar_cliente":
+            self.clientes.remover(operacao["cliente"].codigo)
+            self.salvar_clientes()
+
+        elif tipo == "remover_cliente":
+            self.clientes.inserir_fim(operacao["cliente"])
+            self.salvar_clientes()
+
+        elif tipo == "cadastrar_produto":
+            self.produtos.remover(operacao["produto"].codigo)
+            self.salvar_produtos()
+
+        elif tipo == "remover_produto":
+            self.produtos.inserir_fim(operacao["produto"])
+            self.salvar_produtos()
+
+        elif tipo == "atualizar_estoque":
+            produto = self.produtos.buscar(operacao["codigo"])
+            produto.atualizar_estoque(operacao["anterior"])
+            self.salvar_produtos()
+
+        elif tipo == "realizar_venda":
+            venda = operacao["venda"]
+
+            for item in venda.itens:
+                produto = self.produtos.buscar(item["codigo_produto"])
+                produto.atualizar_estoque(
+                    produto.quantidade + item["quantidade"]
+                )
+
+            vendas = [
+                v for v in self.vendas.listar()
+                if v.codigo != venda.codigo
+            ]
+
+            self.vendas = Fila()
+
+            for v in vendas:
+                self.vendas.enqueue(v)
+
+            self.salvar_produtos()
+            self.salvar_vendas()
+
+        return True
 
     def salvar_clientes(self):
         self.persistencia.salvar_clientes(self.clientes.listar())

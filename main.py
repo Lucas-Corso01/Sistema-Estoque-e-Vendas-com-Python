@@ -145,21 +145,37 @@ def executar_opcao(opcao, service):
 
 
     elif opcao == 13:
-        print("Realizando venda simples de exemplo...")
-        cliente = ler_inteiro("Digite o código do cliente para a venda: ")
-        if cliente <= 0:
-            raise ValueError("O código do cliente deve ser maior que zero.")
-        produto = ler_inteiro("Digite o código do produto para a venda: ")
-        if produto <= 0:
-            raise ValueError("O código do produto deve ser maior que zero.")
-        quantidade = ler_inteiro("Digite a quantidade do produto para a venda: ")
-        if quantidade <= 0:
-            raise ValueError("A quantidade do produto deve ser maior que zero.")
-        venda = service.realizar_venda_exemplo(cliente, produto, quantidade)
+        codigo_cliente = ler_inteiro("Código do cliente: ")
+
+        itens_venda = []
+
+        while True:
+            codigo_produto = ler_inteiro("Código do produto: ")
+            quantidade = ler_inteiro("Quantidade: ")
+
+            if quantidade <= 0:
+                raise ValueError("A quantidade deve ser maior que zero.")
+
+            itens_venda.append({
+                "codigo_produto": codigo_produto,
+                "quantidade": quantidade
+            })
+
+            outro = input("Adicionar outro produto? (s/n): ")
+
+            if outro.lower() != "s":
+                break
+
+        venda = service.realizar_venda_exemplo(
+            codigo_cliente, itens_venda
+        )
+
         if venda:
-            print(f"Venda realizada com sucesso! Código da venda: {venda.codigo}, Código do cliente: {venda.codigo_cliente}, Itens: {venda.itens}, Valor total: R${venda.valor_total:.2f}")
+            print(f"Venda realizada! Código: {venda.codigo} - Total: R$ {venda.valor_total:.2f}")
         else:
-            print("Venda não realizada. Verifique se o cliente e o produto existem e se há estoque suficiente.")
+            print("Venda não realizada.")
+
+
 
     elif opcao == 14:
         vendas = service.listar_vendas()
@@ -193,7 +209,7 @@ def executar_opcao(opcao, service):
                 f"Total gasto: R$ {cliente['total_gasto']:.2f}"
             )
 
-        pausar()
+
         
 
     elif opcao == 19:
@@ -208,20 +224,26 @@ def executar_opcao(opcao, service):
                 f"Total gasto: R$ {cliente['total_gasto']:.2f}"
             )
 
-        pausar()
-
+        
     elif opcao == 20:
-        pass
+        resultado = service.produto_mais_vendido()
+
+        if resultado:
+            produto, quantidade = resultado
+            print(f"Produto mais vendido: {produto.nome} - {quantidade} unidades")
+        else:
+            print("Nenhuma venda realizada.")
+
+       
 
     elif opcao == 21:
         resultado = service.desfazer_ultima_operacao()
-        if resultado is None:
-            print("Nenhuma operação para desfazer.")
-        else:
-            print("Última operação desfeita com sucesso.")
 
-    else:
-        print("Opcao invalida. Tente novamente.")
+        if resultado:
+            print("Operação desfeita!")
+        else:
+            print("Nenhuma operação para desfazer.")
+
 
 def main():
     service = EstoqueService()
